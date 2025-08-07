@@ -30,7 +30,7 @@ func CreatePdfFromEvents(events []domain.Event) (*gopdf.GoPdf, error) {
 	// Add Document header and footer
 	pdf.AddHeader(func() {
 		pdf.SetXY(xOffset, 40)
-		pdf.Cell(nil, "Einsatzmeldung von WAS via FireOps")
+		pdf.Cell(nil, "Einsatzmeldung von FireOps")
 	})
 	pdf.AddFooter(func() {
 		pdf.SetXY(xOffset, 800)

@@ -9,6 +9,7 @@ import (
 	"github.com/fireops-software/fireops-edge-printer/domain"
 	"github.com/fireops-software/fireops-edge-printer/utils"
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/uoul/go-common/health"
 	"github.com/uoul/go-common/log"
 	"github.com/uoul/go-common/messaging"
 
@@ -106,6 +107,15 @@ func NewEventPrinter(ctx context.Context, logger log.ILogger, rabbitMq messaging
 	for _, o := range opts {
 		o(e)
 	}
+	// Register health check
+	health.GetHealthMonitor().RegisterReadynessCheck("printer availability", func() error {
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		if !printer.IsOnline(ctx) {
+			return appError.ErrPrinter("printer is offline")
+		}
+		return nil
+	})
 	go func() {
 		for {
 			err := e.run()

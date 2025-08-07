@@ -7,5 +7,6 @@ import (
 )
 
 type IPrinterApi interface {
+	IsOnline(ctx context.Context) bool
 	PrintPdf(ctx context.Context, pdf *gopdf.GoPdf, copies int) error
 }

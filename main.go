@@ -46,7 +46,6 @@ func main() {
 	)
 	// Create PrintService
 	services.NewEventPrinter(
-
 		appCtx,
 		logger,
 		rabbitMq,

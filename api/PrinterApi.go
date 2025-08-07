@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	appError "github.com/fireops-software/fireops-edge-printer/error"
 	"github.com/signintech/gopdf"
@@ -16,6 +17,18 @@ const (
 
 type PrinterApi struct {
 	printerName string
+}
+
+// IsOnline implements IPrinterApi.
+func (p *PrinterApi) IsOnline(ctx context.Context) bool {
+	cmd := exec.CommandContext(ctx, "/usr/bin/lpstat", "-p", p.printerName)
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	state := string(out)
+	return strings.Contains(state, "idle") || strings.Contains(state, "printing")
+
 }
 
 // PrintPdf implements IPrinterApi.
