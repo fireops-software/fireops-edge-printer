@@ -6,9 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"text/template"
 
+	"github.com/fireops-software/fireops-edge-printer/domain"
 	appError "github.com/fireops-software/fireops-edge-printer/error"
-	"github.com/signintech/gopdf"
+	"github.com/uoul/go-common/log"
 )
 
 const (
@@ -16,7 +18,9 @@ const (
 )
 
 type PrinterApi struct {
-	printerName string
+	logger       log.ILogger
+	printerName  string
+	templateFile string
 }
 
 // IsOnline implements IPrinterApi.
@@ -32,37 +36,91 @@ func (p *PrinterApi) IsOnline(ctx context.Context) bool {
 }
 
 // PrintPdf implements IPrinterApi.
-func (p *PrinterApi) PrintPdf(ctx context.Context, pdf *gopdf.GoPdf, copies int) error {
-	// Get bytes of pdf document
-	doc := pdf.GetBytesPdf()
+func (p *PrinterApi) PrintEvents(ctx context.Context, events []domain.Event, copies int) error {
 	// Create temp file for printing
-	f, err := os.CreateTemp("", "job_*.pdf")
+	mdFile, err := os.CreateTemp("", "job_*.md")
 	if err != nil {
-		return appError.NewErrPrinter("failed to create pdf file on filesystem for printing - %v", err)
+		return appError.NewErrPrinter("failed to create md file on filesystem for printing - %v", err)
 	}
 	// Cleanup
 	defer func() {
-		f.Close()
-		os.Remove(f.Name())
+		mdFile.Close()
+		os.Remove(mdFile.Name())
 	}()
-	// Write pdf data to file
-	if _, err := f.Write(doc); err != nil {
-		return appError.NewErrPrinter("failed to write pdf data to tempfile - %v", err)
+	// Load Template
+	tmpl, err := template.ParseFiles(p.templateFile)
+	if err != nil {
+		return appError.NewErrPrinter("failed to load template from filesystem - %v", err)
+	}
+	// Render Mardown template to tempfile
+	if err = tmpl.Execute(mdFile, events); err != nil {
+		return appError.NewErrPrinter("failed to execute template - %v", err)
 	}
 	// Close file after pdf content has been written
-	f.Close()
-	// Create print command
-	printCmd := exec.CommandContext(ctx, "/usr/bin/lpr", "-o", "portrait", "-o", "fit-to-page", "-o", "media=A4", "-P", p.printerName, fmt.Sprintf("-#%d", copies), f.Name())
+	mdFile.Close()
+	// Convert markdown to html
+	cmd1 := exec.CommandContext(
+		ctx,
+		"/usr/bin/pandoc",
+		mdFile.Name(),
+		"-o",
+		"temp.html",
+	)
+	if stdOut, err := cmd1.Output(); err != nil {
+		return appError.NewErrPrinter("%s - %v", string(stdOut), err)
+	} else {
+		p.logger.Debugf("Converted mardown to html: %s", stdOut)
+	}
+	// Create pdf of html
+	cmd2 := exec.CommandContext(
+		ctx,
+		"/usr/bin/chromium",
+		"--headless",
+		"--disable-gpu",
+		"--print-to-pdf=temp.pdf",
+		"--no-sandbox",
+		"--no-pdf-header-footer",
+		"--print-to-pdf-no-header",
+		"temp.html",
+	)
+	if stdOut, err := cmd2.Output(); err != nil {
+		return appError.NewErrPrinter("%s - %v", string(stdOut), err)
+	} else {
+		p.logger.Debugf("Converted html to pdf: %s", stdOut)
+	}
+	// Print pdf document
+	cmd3 := exec.CommandContext(
+		ctx,
+		"/usr/bin/lpr",
+		"-o",
+		"portrait",
+		"-o",
+		"fit-to-page",
+		"-o",
+		"media=A4",
+		"-P",
+		p.printerName,
+		fmt.Sprintf("-#%d", copies),
+		"temp.pdf",
+	)
 	// Execute print command
-	if stdOut, err := printCmd.Output(); err != nil {
+	if stdOut, err := cmd3.Output(); err != nil {
 		return appError.NewErrPrinter("%s - %v", string(stdOut), err)
 	}
 	return nil
 }
 
-func NewPrinterApi(printerName string, opts ...func(*PrinterApi)) IPrinterApi {
+func WithPrinterApiTemplate(templateFile string) func(*PrinterApi) {
+	return func(pa *PrinterApi) {
+		pa.templateFile = templateFile
+	}
+}
+
+func NewPrinterApi(logger log.ILogger, printerName string, opts ...func(*PrinterApi)) IPrinterApi {
 	p := &PrinterApi{
-		printerName: printerName,
+		logger:       logger,
+		printerName:  printerName,
+		templateFile: "templates/events.tpl",
 	}
 	for _, o := range opts {
 		o(p)

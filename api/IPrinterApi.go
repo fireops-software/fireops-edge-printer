@@ -3,10 +3,10 @@ package api
 import (
 	"context"
 
-	"github.com/signintech/gopdf"
+	"github.com/fireops-software/fireops-edge-printer/domain"
 )
 
 type IPrinterApi interface {
 	IsOnline(ctx context.Context) bool
-	PrintPdf(ctx context.Context, pdf *gopdf.GoPdf, copies int) error
+	PrintEvents(ctx context.Context, events []domain.Event, copies int) error
 }

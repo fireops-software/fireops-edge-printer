@@ -42,6 +42,7 @@ func main() {
 	)
 	// Create PrinterApi
 	printerApi := api.NewPrinterApi(
+		logger,
 		cp.StringOrDefault("PRINTER_NAME", ""),
 	)
 	// Create PrintService

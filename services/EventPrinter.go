@@ -7,7 +7,6 @@ import (
 
 	"github.com/fireops-software/fireops-edge-printer/api"
 	"github.com/fireops-software/fireops-edge-printer/domain"
-	"github.com/fireops-software/fireops-edge-printer/utils"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/uoul/go-common/health"
 	"github.com/uoul/go-common/log"
@@ -58,15 +57,10 @@ func (e *EventPrinter) run() error {
 				return appError.NewErrDataParsing("failed to parse incomming data - %v", err)
 			}
 			e.logger.Debugf("New incomming events: %s", string(msg.Result.Body))
-			// Create PDF
-			pdf, err := utils.CreatePdfFromEvents(events)
-			if err != nil {
-				return appError.NewErrDataParsing("failed to create pdf - %v", err)
-			}
 			// Create context for time
 			pCtx, cancel := context.WithTimeout(e.ctx, e.printTimeOut)
 			// Print PDF
-			if err := e.printer.PrintPdf(pCtx, pdf, e.copies); err != nil {
+			if err := e.printer.PrintEvents(pCtx, events, e.copies); err != nil {
 				cancel()
 				return err
 			}
