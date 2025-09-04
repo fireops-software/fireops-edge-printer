@@ -35,7 +35,7 @@
 | **Alarmtext:** | {{.EventAlarmtext}} |
 | **Destinations:** | {{range .Destinations }}{{.Name}}, {{end}} |
 
-## Mitglieder
+## Mannschaft
 
 | Vorname | Nachname | Einheit |
 |---|---|---|
