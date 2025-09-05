@@ -25,7 +25,7 @@
 |---|---|
 | **Einsatznummer:** | {{.Num1}} |
 | **Alarmiert:** | {{.CreateTime}} |
-| **Sirenenproramm:** | {{.Category}} |
+| **Sirenenprogramm:** | {{.Category}} |
 | **Alarmstufe:** | {{.AlarmLev}} |
 | **Anrufer:** | {{.CallerName}} |
 | **Telefonnummer:** | {{.CallerNumber}} |
