@@ -19,21 +19,19 @@
 </style>
 
 {{range .}}
-# Einsatz von FireOps
+# {{.TypEng}}
 
 |   |   |
 |---|---|
 | **Einsatznummer:** | {{.Num1}} |
-| **Zeitstempel:** | {{.CreateTime}} |
-| **Kategorie:** | {{.Category}} |
-| **Art:** | {{.TypEng}} {{.SubEng}} |
+| **Alarmiert:** | {{.CreateTime}} |
+| **Sirenenproramm:** | {{.Category}} |
 | **Alarmstufe:** | {{.AlarmLev}} |
 | **Anrufer:** | {{.CallerName}} |
 | **Telefonnummer:** | {{.CallerNumber}} |
 | **Ort:** | {{.Location}} |
-| **Ortsinfo:** | {{.LocationInfo}} |
 | **Alarmtext:** | {{.EventAlarmtext}} |
-| **Destinations:** | {{range .Destinations }}{{.Name}}, {{end}} |
+| **Feuerwehren:** | {{range .Destinations }}{{.Name}}, {{end}} |
 
 ## Mannschaft
 
@@ -48,6 +46,8 @@
 | | |
 | | |
 | | |
+
+*Powered by FireOPS*
 
 <div style="page-break-after: always;"></div>
 {{end}}
