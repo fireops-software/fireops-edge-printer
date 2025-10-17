@@ -120,7 +120,7 @@ func (p *PrinterApi) setup(ctx context.Context) error {
 		return nil
 	}
 	// Setup printer
-	return exec.CommandContext(
+	err := exec.CommandContext(
 		ctx,
 		"/usr/sbin/lpadmin",
 		"-p",
@@ -133,6 +133,10 @@ func (p *PrinterApi) setup(ctx context.Context) error {
 		"printer-is-shared=false",
 		"-E",
 	).Run()
+	if err == nil {
+		p.logger.Infof("Printer %s with connection %s and driver %s has been setup successfully", p.printerName, p.connStr, p.driver)
+	}
+	return err
 }
 
 func printerExists(ctx context.Context, name string) bool {
