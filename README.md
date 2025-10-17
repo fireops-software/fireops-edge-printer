@@ -17,6 +17,8 @@ All configuration is done via environmental variables because the intended form 
 | RABBITMQ_HEALTH_ROUTING_KEY |  | RabbitMQ routing key for health messages |
 ||||
 | PRINTER_NAME |  | Printer name (name of printer in CUPS) |
+| PRINTER_URL |  | Printer ipp url (e.g. ipp://<IP>) |
+| PRINTER_DRIVER | everywhere | Printer drivers name (for all ipp printers everywhere) |
 | PRINTER_COPIES | 1 | number of copies, that should be printed |
 ||||
 | LOG_LEVEL | INFO | TRACE, DEBUG, INFO, WARNING, ERROR, FATAL, OFF |

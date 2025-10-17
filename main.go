@@ -42,8 +42,13 @@ func main() {
 	)
 	// Create PrinterApi
 	printerApi := api.NewPrinterApi(
+		appCtx,
 		logger,
 		cp.StringOrDefault("PRINTER_NAME", ""),
+		cp.StringOrDefault("PRINTER_URL", ""),
+		api.WithPrinterDriver(
+			cp.StringOrDefault("PRINTER_DRIVER", "everywhere"),
+		),
 	)
 	// Create PrintService
 	services.NewEventPrinter(
