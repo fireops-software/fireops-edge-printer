@@ -16,6 +16,7 @@ import (
 const (
 	VERSION      = "{VERSION}"
 	SERVICE_NAME = "fireops-edge-printer"
+	DISPLAY_NAME = "Drucker"
 )
 
 func main() {
@@ -58,7 +59,7 @@ func main() {
 		messaging.RabbitMqExchange{
 			Type:       "topic",
 			Exchange:   cp.StringOrDefault("RABBITMQ_EVENTS_EXCHANGE", "fireops-edge-events"),
-			RoutingKey: cp.StringOrDefault("RABBITMQ_EVENTS_ROUTING_KEY", "alu2g.new"),
+			RoutingKey: cp.StringOrDefault("RABBITMQ_EVENTS_ROUTING_KEY", "new"),
 		},
 		printerApi,
 		services.WithEventPrinterCopies(
@@ -76,6 +77,7 @@ func main() {
 			RoutingKey: cp.StringOrDefault("RABBITMQ_HEALTH_ROUTING_KEY", ""),
 		},
 		SERVICE_NAME,
+		DISPLAY_NAME,
 	)
 	// Wait until stop
 	osSig := make(chan os.Signal, 1)
