@@ -16,6 +16,8 @@ All configuration is done via environmental variables because the intended form 
 | RABBITMQ_HEALTH_EXCHANGE | fireops-edge-health | RabbitMQ exchange for health messages |
 | RABBITMQ_HEALTH_ROUTING_KEY |  | RabbitMQ routing key for health messages |
 ||||
+| FIREDEP_ADDR |  | Firedepartment address (source address for map) |
+||||
 | PRINTER_NAME |  | Printer name (name of printer in CUPS) |
 | PRINTER_URL |  | Printer ipp url (e.g. ipp://<IP>) |
 | PRINTER_DRIVER | everywhere | Printer drivers name (for all ipp printers everywhere) |

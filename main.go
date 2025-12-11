@@ -62,6 +62,7 @@ func main() {
 			RoutingKey: cp.StringOrDefault("RABBITMQ_EVENTS_ROUTING_KEY", "new"),
 		},
 		printerApi,
+		cp.StringOrDefault("FIREDEP_ADDR", ""),
 		services.WithEventPrinterCopies(
 			cp.IntOrDefault("PRINTER_COPIES", 1),
 		),

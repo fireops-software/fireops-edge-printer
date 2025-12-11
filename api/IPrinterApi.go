@@ -8,5 +8,5 @@ import (
 
 type IPrinterApi interface {
 	IsOnline(ctx context.Context) bool
-	PrintEvents(ctx context.Context, events []domain.Event, copies int) error
+	PrintEvents(ctx context.Context, mapSrcLocation string, events []domain.Event, copies int) error
 }

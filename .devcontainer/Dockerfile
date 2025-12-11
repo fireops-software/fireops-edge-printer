@@ -8,7 +8,9 @@ RUN wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz \
 ENV PATH=$PATH:/go/bin
 RUN go install github.com/go-delve/delve/cmd/dlv@latest \
     && go install golang.org/x/tools/gopls@latest \
-    && go install honnef.co/go/tools/cmd/staticcheck@latest
+    && go install honnef.co/go/tools/cmd/staticcheck@latest \
+    && apk add pandoc \
+    && apk add chromium 
 
 # set workdir for project
 WORKDIR /dev

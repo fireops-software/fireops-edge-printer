@@ -33,19 +33,7 @@
 | **Alarmtext:** | {{.EventAlarmtext}} |
 | **Feuerwehren:** | {{range .Destinations }}{{.Name}}, {{end}} |
 
-## Mannschaft
-
-| Vorname | Nachname | Einheit |
-|---|---|---|
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
+![](data:image/png;base64,{{.MapImgBase64}})
 
 *Powered by FireOPS*
 

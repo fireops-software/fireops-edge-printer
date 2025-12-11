@@ -20,11 +20,12 @@ import (
 //--------------------------------------------------------------------------------------------
 
 type EventPrinter struct {
-	ctx      context.Context
-	logger   log.ILogger
-	rabbitMq messaging.IMessenger[messaging.RabbitMqExchange, amqp091.Delivery]
-	exchange messaging.RabbitMqExchange
-	printer  api.IPrinterApi
+	ctx           context.Context
+	logger        log.ILogger
+	rabbitMq      messaging.IMessenger[messaging.RabbitMqExchange, amqp091.Delivery]
+	exchange      messaging.RabbitMqExchange
+	printer       api.IPrinterApi
+	mapSrcAddress string
 
 	copies        int
 	printTimeOut  time.Duration
@@ -56,16 +57,16 @@ func (e *EventPrinter) run() error {
 			if err := json.Unmarshal(msg.Result.Body, &events); err != nil {
 				return appError.NewErrDataParsing("failed to parse incomming data - %v", err)
 			}
-			e.logger.Debugf("New incomming events: %s", string(msg.Result.Body))
+			e.logger.Infof("New incomming events: %s", string(msg.Result.Body))
 			// Create context for time
 			pCtx, cancel := context.WithTimeout(e.ctx, e.printTimeOut)
 			// Print PDF
-			if err := e.printer.PrintEvents(pCtx, events, e.copies); err != nil {
+			if err := e.printer.PrintEvents(pCtx, e.mapSrcAddress, events, e.copies); err != nil {
 				cancel()
 				return err
 			}
 			cancel()
-			e.logger.Debugf("Printjob sent successfully")
+			e.logger.Infof("Printjob sent successfully")
 		}
 	}
 }
@@ -86,17 +87,18 @@ func WithEventPrinterTimeout(timeout time.Duration) func(*EventPrinter) {
 // Constructor
 //--------------------------------------------------------------------------------------------
 
-func NewEventPrinter(ctx context.Context, logger log.ILogger, rabbitMq messaging.IMessenger[messaging.RabbitMqExchange, amqp091.Delivery], exchange messaging.RabbitMqExchange, printer api.IPrinterApi, opts ...func(*EventPrinter)) *EventPrinter {
+func NewEventPrinter(ctx context.Context, logger log.ILogger, rabbitMq messaging.IMessenger[messaging.RabbitMqExchange, amqp091.Delivery], exchange messaging.RabbitMqExchange, printer api.IPrinterApi, mapSrcAddr string, opts ...func(*EventPrinter)) *EventPrinter {
 	e := &EventPrinter{
-		ctx:      ctx,
-		logger:   logger,
-		rabbitMq: rabbitMq,
-		exchange: exchange,
-		printer:  printer,
+		ctx:           ctx,
+		logger:        logger,
+		rabbitMq:      rabbitMq,
+		exchange:      exchange,
+		printer:       printer,
+		mapSrcAddress: mapSrcAddr,
 
 		retryInterval: 10 * time.Second,
 		copies:        1,
-		printTimeOut:  30 * time.Second,
+		printTimeOut:  60 * time.Second,
 	}
 	for _, o := range opts {
 		o(e)

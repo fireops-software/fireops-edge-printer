@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,8 +10,11 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/chromedp/chromedp"
 	"github.com/fireops-software/fireops-edge-printer/domain"
 	appError "github.com/fireops-software/fireops-edge-printer/error"
+	"github.com/uoul/go-common/async"
+	"github.com/uoul/go-common/collections"
 	"github.com/uoul/go-common/log"
 )
 
@@ -21,6 +25,11 @@ type PrinterApi struct {
 	connStr      string
 	driver       string
 	templateFile string
+}
+
+type templateData struct {
+	domain.Event
+	MapImgBase64 string
 }
 
 // IsOnline implements IPrinterApi.
@@ -36,10 +45,29 @@ func (p *PrinterApi) IsOnline(ctx context.Context) bool {
 }
 
 // PrintPdf implements IPrinterApi.
-func (p *PrinterApi) PrintEvents(ctx context.Context, events []domain.Event, copies int) error {
+func (p *PrinterApi) PrintEvents(ctx context.Context, mapSrcLocation string, events []domain.Event, copies int) error {
 	// Try setup printer
 	if err := p.setup(ctx); err != nil {
 		return appError.NewErrPrinter("failed to setup printer - %v", err)
+	}
+	mapImgs := make([]<-chan async.ActionResult[[]byte], len(events))
+	// Create data for template
+	templateData := collections.MapSlice(events, func(e domain.Event) templateData {
+		return templateData{
+			Event: e,
+		}
+	})
+	// Create Map images
+	mapCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	for i := 0; i < len(templateData); i++ {
+		dest := ""
+		if templateData[i].Latitude != nil && templateData[i].Longitude != nil {
+			dest = fmt.Sprintf("%v, %v", templateData[i].Latitude, templateData[i].Longitude)
+		} else if templateData[i].Location != nil {
+			dest = *templateData[i].Location
+		}
+		mapImgs[i] = captureGoogleMapsScreenshot(mapCtx, mapSrcLocation, dest)
 	}
 	// Create temp file for printing
 	mdFile, err := os.CreateTemp("", "job_*.md")
@@ -56,8 +84,17 @@ func (p *PrinterApi) PrintEvents(ctx context.Context, events []domain.Event, cop
 	if err != nil {
 		return appError.NewErrPrinter("failed to load template from filesystem - %v", err)
 	}
+	// Wait for map images
+	for i := 0; i < len(templateData); i++ {
+		mapResult := <-mapImgs[i]
+		if mapResult.Error != nil {
+			p.logger.Errorf("Failed to create map for event %v - %v", templateData[i].Num1, mapResult.Error)
+			continue // If map creation failed we will go on to print at least the text
+		}
+		templateData[i].MapImgBase64 = base64.RawStdEncoding.EncodeToString(mapResult.Result)
+	}
 	// Render Mardown template to tempfile
-	if err = tmpl.Execute(mdFile, events); err != nil {
+	if err = tmpl.Execute(mdFile, templateData); err != nil {
 		return appError.NewErrPrinter("failed to execute template - %v", err)
 	}
 	// Close file after pdf content has been written
@@ -137,6 +174,52 @@ func (p *PrinterApi) setup(ctx context.Context) error {
 		p.logger.Infof("Printer %s with connection %s and driver %s has been setup successfully", p.printerName, p.connStr, p.driver)
 	}
 	return err
+}
+
+func captureGoogleMapsScreenshot(ctx context.Context, srcAddr, destAddr string) <-chan async.ActionResult[[]byte] {
+	result := make(chan async.ActionResult[[]byte], 1)
+	go func() {
+		// Create the Google Maps URL
+		src := strings.ReplaceAll(srcAddr, " ", "+")
+		dest := strings.ReplaceAll(destAddr, " ", "+")
+		mapsUrl := fmt.Sprintf("https://maps.google.com/maps?ie=UTF8&output=embed&saddr=%s&daddr=%s&dirflg=d", src, dest)
+		// Create HTML with iframe
+		html := fmt.Sprintf(`<iframe width="100%%" height="100%%" src="%s"></iframe>`, mapsUrl)
+		// Create temporary HTML file
+		tmpFile, err := os.CreateTemp("", "maps-*.html")
+		if err != nil {
+			result <- async.NewErrorActionResult[[]byte](
+				appError.NewErrIo("failed to create temp file: %v", err),
+			)
+		}
+		defer os.Remove(tmpFile.Name())
+		if _, err := tmpFile.Write([]byte(html)); err != nil {
+			result <- async.NewErrorActionResult[[]byte](
+				appError.NewErrIo("failed to write data to temp file: %v", err),
+			)
+		}
+		tmpFile.Close()
+		// Create context
+		ctx, cancel := chromedp.NewContext(ctx)
+		defer cancel()
+		var buf []byte
+		// Navigate to file
+		fileURL := "file://" + tmpFile.Name()
+		err = chromedp.Run(ctx,
+			chromedp.Navigate(fileURL),
+			chromedp.Sleep(5*time.Second),
+			chromedp.FullScreenshot(&buf, 100),
+		)
+		if err != nil {
+			result <- async.NewErrorActionResult[[]byte](
+				appError.NewErrInternal("failed to capture map as image: %v", err),
+			)
+		}
+		result <- async.ActionResult[[]byte]{
+			Result: buf,
+		}
+	}()
+	return result
 }
 
 func printerExists(ctx context.Context, name string) bool {
