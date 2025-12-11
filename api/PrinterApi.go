@@ -184,7 +184,7 @@ func captureGoogleMapsScreenshot(ctx context.Context, srcAddr, destAddr string) 
 		dest := strings.ReplaceAll(destAddr, " ", "+")
 		mapsUrl := fmt.Sprintf("https://maps.google.com/maps?ie=UTF8&output=embed&saddr=%s&daddr=%s&dirflg=d", src, dest)
 		// Create HTML with iframe
-		html := fmt.Sprintf(`<iframe width="100%%" height="100%%" src="%s"></iframe>`, mapsUrl)
+		html := fmt.Sprintf(`<iframe style="border: 0; width:800px; height:500px; overflow: auto;" src="%s"></iframe>`, mapsUrl)
 		// Create temporary HTML file
 		tmpFile, err := os.CreateTemp("", "maps-*.html")
 		if err != nil {
@@ -207,7 +207,7 @@ func captureGoogleMapsScreenshot(ctx context.Context, srcAddr, destAddr string) 
 		fileURL := "file://" + tmpFile.Name()
 		err = chromedp.Run(ctx,
 			chromedp.Navigate(fileURL),
-			chromedp.Sleep(5*time.Second),
+			chromedp.Sleep(10*time.Second),
 			chromedp.FullScreenshot(&buf, 100),
 		)
 		if err != nil {
