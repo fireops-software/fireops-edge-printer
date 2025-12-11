@@ -10,7 +10,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/chromedp/chromedp"
 	"github.com/fireops-software/fireops-edge-printer/domain"
 	appError "github.com/fireops-software/fireops-edge-printer/error"
 	"github.com/uoul/go-common/async"
@@ -184,37 +183,55 @@ func captureGoogleMapsScreenshot(ctx context.Context, srcAddr, destAddr string) 
 		dest := strings.ReplaceAll(destAddr, " ", "+")
 		mapsUrl := fmt.Sprintf("https://maps.google.com/maps?ie=UTF8&output=embed&saddr=%s&daddr=%s&dirflg=d", src, dest)
 		// Create HTML with iframe
-		html := fmt.Sprintf(`<iframe style="border: 0; width:800px; height:500px; overflow: auto;" src="%s"></iframe>`, mapsUrl)
+		html := fmt.Sprintf(`<iframe style="border: 0; width:800px; height:500px; overflow: hidden;" src="%s"></iframe>`, mapsUrl)
 		// Create temporary HTML file
 		tmpFile, err := os.CreateTemp("", "maps-*.html")
 		if err != nil {
 			result <- async.NewErrorActionResult[[]byte](
 				appError.NewErrIo("failed to create temp file: %v", err),
 			)
+			return
 		}
 		defer os.Remove(tmpFile.Name())
 		if _, err := tmpFile.Write([]byte(html)); err != nil {
 			result <- async.NewErrorActionResult[[]byte](
 				appError.NewErrIo("failed to write data to temp file: %v", err),
 			)
+			return
 		}
 		tmpFile.Close()
-		// Create context
-		ctx, cancel := chromedp.NewContext(ctx)
-		defer cancel()
-		var buf []byte
 		// Navigate to file
 		fileURL := "file://" + tmpFile.Name()
-		err = chromedp.Run(ctx,
-			chromedp.Navigate(fileURL),
-			chromedp.Sleep(10*time.Second),
-			chromedp.FullScreenshot(&buf, 100),
+		// Create temporary file for screenshot
+		screenShotFile := fmt.Sprintf("screenshot_%d.png", time.Now().Unix())
+
+		// Build chromium command
+		cmd := exec.CommandContext(ctx,
+			"/usr/bin/chromium",
+			"--headless",
+			"--disable-gpu",
+			"--no-sandbox",
+			"--hide-scrollbars",
+			fmt.Sprintf("--screenshot=%s", screenShotFile),
+			"--virtual-time-budget=7000", // 7 seconds
+			fileURL,
 		)
-		if err != nil {
-			result <- async.NewErrorActionResult[[]byte](
-				appError.NewErrInternal("failed to capture map as image: %v", err),
-			)
+		if stdOut, err := cmd.Output(); err != nil {
+			result <- async.NewErrorActionResult[[]byte](appError.NewErrIo("%v - %s", err, string(stdOut)))
+			return
 		}
+		defer os.Remove(screenShotFile)
+
+		// Wait a moment for file to be fully written
+		time.Sleep(100 * time.Millisecond)
+
+		// Read the PNG file as []byte
+		buf, err := os.ReadFile(screenShotFile)
+		if err != nil {
+			result <- async.NewErrorActionResult[[]byte](appError.NewErrIo("failed to read image - %v", err))
+			return
+		}
+
 		result <- async.ActionResult[[]byte]{
 			Result: buf,
 		}
