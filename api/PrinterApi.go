@@ -62,7 +62,7 @@ func (p *PrinterApi) PrintEvents(ctx context.Context, mapSrcLocation string, eve
 	for i := 0; i < len(templateData); i++ {
 		dest := ""
 		if templateData[i].Latitude != nil && templateData[i].Longitude != nil {
-			dest = fmt.Sprintf("%v, %v", templateData[i].Latitude, templateData[i].Longitude)
+			dest = fmt.Sprintf("%v, %v", *templateData[i].Latitude, *templateData[i].Longitude)
 		} else if templateData[i].Location != nil {
 			dest = *templateData[i].Location
 		}
