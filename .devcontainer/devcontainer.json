@@ -10,6 +10,8 @@
           "gruntfuggly.todo-tree"
         ]
       }
-    }
+    },
+
+    "postCreateCommand": "/usr/sbin/cupsd"
   }
   

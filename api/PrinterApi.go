@@ -115,12 +115,13 @@ func (p *PrinterApi) PrintEvents(ctx context.Context, mapSrcLocation string, eve
 	cmd2 := exec.CommandContext(
 		ctx,
 		"/usr/bin/chromium",
-		"--headless",
+		"--headless=new",
 		"--disable-gpu",
-		"--print-to-pdf=temp.pdf",
 		"--no-sandbox",
+		"--disable-dev-shm-usage",
+		"--disable-setuid-sandbox",
+		"--print-to-pdf=temp.pdf",
 		"--no-pdf-header-footer",
-		"--print-to-pdf-no-header",
 		"temp.html",
 	)
 	if stdOut, err := cmd2.Output(); err != nil {
