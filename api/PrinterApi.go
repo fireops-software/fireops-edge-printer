@@ -132,16 +132,17 @@ func (p *PrinterApi) PrintEvents(ctx context.Context, mapSrcLocation string, eve
 	// Print pdf document
 	cmd3 := exec.CommandContext(
 		ctx,
-		"/usr/bin/lpr",
+		"/usr/bin/lp",
 		"-o",
 		"portrait",
 		"-o",
 		"fit-to-page",
 		"-o",
 		"media=A4",
-		"-P",
+		"-d",
 		p.printerName,
-		fmt.Sprintf("-#%d", copies),
+		"-n",
+		fmt.Sprintf("%d", copies),
 		"temp.pdf",
 	)
 	// Execute print command
