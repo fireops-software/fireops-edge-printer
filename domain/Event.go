@@ -21,9 +21,15 @@ type Event struct {
 		Id   uint   `json:"id"`
 		Name string `json:"name"`
 	} `json:"destinations"`
+	AlertedUnits []struct {
+		UnidLong string `json:"unid_long"`
+		SName    string `json:"s_name"`
+		UniTyp   string `json:"unityp"`
+	} `json:"alerted_units"`
 	UserResponses struct {
 		Accepted []string `json:"accepted"`
 		Declined []string `json:"declined"`
 	} `json:"user_responses"`
-	FullChain *bool `json:"fullChain"`
+	AlertState *string `json:"alert_state"`
+	FullChain  *bool   `json:"fullChain"`
 }
