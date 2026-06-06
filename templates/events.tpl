@@ -29,7 +29,7 @@
 | **Alarmstufe:** | {{.AlarmLev}} |
 | **Anrufer:** | {{.CallerName}} |
 | **Telefonnummer:** | {{.CallerNumber}} |
-| **Ort:** | {{.Location}} |
+| **Einsatzort:** | {{.Location}}{{with .LocationInfo}} <br> {{.}}{{end}}{{with .LocationInvolved}} <br> Betroffen: {{.}}{{end}} |
 | **Alarmtext:** | {{.EventAlarmtext}} |
 | **Feuerwehren:** | {{range .Destinations }}{{.Name}}, {{end}} |
 
